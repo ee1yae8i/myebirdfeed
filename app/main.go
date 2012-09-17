@@ -5,7 +5,6 @@ import (
 	"appengine/datastore"
 	"ebird"
 	"errors"
-//	"exp/html"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -20,6 +19,7 @@ const (
 
 func init() {
 	http.HandleFunc(feedPrefix, serveFeed)
+	http.HandleFunc("/debug", debug)
 }
 
 type User struct {
@@ -69,8 +69,6 @@ func serveFeed(w http.ResponseWriter, r *http.Request) {
 
 	data, err := ioutil.ReadAll(resp.Body)
 	log(w, string(data))
-//	node, err := html.Parse(resp.Body)
-//	log(w, node)
 
 	_, err = client.Get("http://ebird.org/ebird/j_acegi_logout")
 	if (err != nil) {
