@@ -9,24 +9,40 @@ import (
 )
 
 func debug(w http.ResponseWriter, r *http.Request) {
-	node, err := html.Parse(strings.NewReader(manageChecklistsHtml))
+	rootNode, err := html.Parse(strings.NewReader(manageChecklistsHtml))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	debugNodeFull(w, node, 0)
+
+	checkListIds := make(map[string]bool)
+	for node, depth := rootNode, 0; node != nil; node, depth = nextNode(node, depth) {
+		for i := 0; i < depth; i++ {
+			fmt.Fprintf(w, "  ")
+		}
+		debugNode(w, node)
+		checkListId := findCheckListId(node)
+		if checkListId != nil {
+			checkListIds[checkListId] = true
+		}
+	}
 }
 
-func debugNodeFull(w io.Writer, node *html.Node, n int) {
-	if node == nil {
-		return
+// Returns the next node in a depth-first traversal.
+func nextNode(node *html.Node, depth int) (*html.Node, int) {
+	if node.FirstChild != nil {
+		return node.FirstChild, depth+1
 	}
-	for i := 0; i < n; i++ {
-		fmt.Fprintf(w, " ")
+	if node.NextSibling != nil {
+		return node.NextSibling, depth
 	}
-	debugNode(w, node)
-	debugNodeFull(w, node.FirstChild, n+2)
-	debugNodeFull(w, node.NextSibling, n)
+	for node = node.Parent; node != nil; node = node.Parent {
+		depth -= 1
+		if node.NextSibling != nil {
+			return node.NextSibling, depth
+		}
+	}
+	return nil, 0
 }
 
 func debugNode(w io.Writer, node *html.Node) {
