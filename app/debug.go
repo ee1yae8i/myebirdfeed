@@ -30,13 +30,16 @@ func debugNodeFull(w io.Writer, node *html.Node, n int) {
 }
 
 func debugNode(w io.Writer, node *html.Node) {
-	fmt.Fprintf(
-		w,
-		"%s <%s>: %s\n",
-		nodeTypeToString(node.Type),
-		node.DataAtom.String(),
-		node.Data,
-	)
+	fmt.Fprintf(w, "%s ", nodeTypeToString(node.Type))
+	if node.Type == html.ElementNode {
+		fmt.Fprintf(w, "<%s", node.DataAtom.String())
+		for _, attr := range node.Attr {
+			fmt.Fprintf(w, " %s=\"%s\"", attr.Key, attr.Val)
+		}
+		fmt.Fprintf(w, ">")
+	}
+
+	fmt.Fprintf(w, ": %s\n", node.Data)
 }
 
 func nodeTypeToString(nodeType html.NodeType) string {
