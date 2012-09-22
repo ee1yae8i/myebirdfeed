@@ -24,7 +24,7 @@ func init() {
 
 type User struct {
 	Login string `datastore:",noindex"`
-	Password string `datastore:",noindex"`
+	ObfuscatedPassword []byte `datastore:",noindex"`
 }
 
 func userKey(context appengine.Context, login string) *datastore.Key {
@@ -32,6 +32,12 @@ func userKey(context appengine.Context, login string) *datastore.Key {
 }
 
 func serveFeed(w http.ResponseWriter, r *http.Request) {
+	// 1. Lookup user.
+        // 2. Fetch checklist data.
+	//   2.1. If not refreshed recently, download checklist ids.
+	//   2.2. Look up missing checklists.
+	// 3. Transform checklists into RSS/Atom elements.
+
 	login, err := parseUser(r.URL.Path)
 	if (err != nil) {
 		http.NotFound(w, r)
