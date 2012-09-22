@@ -2,9 +2,11 @@ package app
 
 import (
 	"exp/html"
+	"exp/html/atom"
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 )
 
@@ -22,10 +24,33 @@ func debug(w http.ResponseWriter, r *http.Request) {
 		}
 		debugNode(w, node)
 		checkListId := findCheckListId(node)
-		if checkListId != nil {
+		if checkListId != "" {
 			checkListIds[checkListId] = true
+			fmt.Fprintf(w, "found " + checkListId + "\n")
 		}
 	}
+}
+
+var checkListMatcher = regexp.MustCompile(
+	"^/ebird/view/checklist\\?subID=([a-zA-Z0-9]+)$")
+
+func findCheckListId(node *html.Node) (id string) {
+	if node.Type != html.ElementNode { 
+		return
+	}
+	if node.DataAtom != atom.A {
+		return
+	}
+	for _, attr := range node.Attr {
+		if attr.Key == "href" {
+			matches := checkListMatcher.FindStringSubmatch(attr.Val)
+			if matches == nil {
+				return
+			}
+			return matches[1]
+		}
+	}
+	return
 }
 
 // Returns the next node in a depth-first traversal.
