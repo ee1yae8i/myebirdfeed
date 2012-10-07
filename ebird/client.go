@@ -23,7 +23,7 @@ func newCookieJar() http.CookieJar {
 	return &simpleCookieJar{make(map[string][]*http.Cookie)}
 }
 
-func NewClient(context appengine.Context) *http.Client {
+func newClient(context appengine.Context) *http.Client {
 	client := urlfetch.Client(context)
 	client.Jar = newCookieJar()
 	return client

@@ -32,12 +32,7 @@ func userKey(context appengine.Context, login string) *datastore.Key {
 }
 
 func serveFeed(w http.ResponseWriter, r *http.Request) {
-	// 1. Lookup user.
-        // 2. Fetch checklist data.
-	//   2.1. If not refreshed recently, download checklist ids.
-	//   2.2. Look up missing checklists.
-	// 3. Transform checklists into RSS/Atom elements.
-
+	// Lookup user.
 	login, err := parseUser(r.URL.Path)
 	if (err != nil) {
 		http.NotFound(w, r)
@@ -45,42 +40,17 @@ func serveFeed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	context := appengine.NewContext(r)
-
 	user := new(User)
 	err = datastore.Get(context, userKey(context, login), user)
 	if err != nil {
-		log(w, err)
+		http.NotFound(w, r)
 		return
 	}
 
-	log(w, user.Login)
+	// TODO: Implement some policy for deciding when to refresh list of observations.
+	fetchObservations(context, user.Login, password)
 
-	client := ebird.NewClient(context)
-
-	form := url.Values{}
-	form.Set("j_username", user.Login)
-	form.Set("j_password", user.Password)
-	form.Set("cmd", "login")
-	resp, err := client.PostForm("https://ebird.org/ebird/j_acegi_security_check", form)
-	if (err != nil) {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	resp, err = client.Get("http://ebird.org/ebird/eBirdReports?cmd=subReport")
-	if (err != nil) {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	data, err := ioutil.ReadAll(resp.Body)
-	log(w, string(data))
-
-	_, err = client.Get("http://ebird.org/ebird/j_acegi_logout")
-	if (err != nil) {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	// TODO: transform checklists into RSS/Atom elements.
 }
 
 func parseUser(path string) (user string, err error) {
@@ -89,6 +59,14 @@ func parseUser(path string) (user string, err error) {
 		err = errors.New("Invalid user path")
 	}
 	return
+}
+
+func fetchObservations() {
+	session := ebird.NewSession(context, username, password)
+	defer session.Logout()
+
+	session.FetchObservationSummaries()
+	// TODO: If checklists missing, set a timer and begin fetching them and saving to datastore.	
 }
 
 func log(w io.Writer, value interface{}) {
